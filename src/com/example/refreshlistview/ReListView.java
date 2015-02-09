@@ -13,7 +13,6 @@ import android.widget.AbsListView.OnScrollListener;
 public class ReListView extends ListView implements OnScrollListener{
 	
 	private View headerView;
-	private boolean hasOnLayout = false;
 	private int headerHeight;
 	private boolean isScrollToTop = false;
 	private float preY = 0;
@@ -24,7 +23,7 @@ public class ReListView extends ListView implements OnScrollListener{
 	
 	public ReListView(Context context, AttributeSet attrs) {
 		super(context, attrs);
-		headerView = LayoutInflater.from(context).inflate(R.layout.xlistview_header, null);
+		headerView = LayoutInflater.from(context).inflate(R.layout.listview_header, null);
 		headerView.measure(0, 0);
 		headerHeight = headerView.getMeasuredHeight();
 		headerView.setPadding(0, -headerHeight, 0, 0);
@@ -64,23 +63,26 @@ public class ReListView extends ListView implements OnScrollListener{
 				preY = downY;
 			}
 			break;
+			
 		case MotionEvent.ACTION_MOVE:
 			if(isScrollToTop){
-				int diff = (int) (downY - preY)/2;
-				int paddingTop = diff - headerHeight;
+				int deltaY = (int) (downY - preY)/2;
+				int paddingTop = deltaY - headerHeight;
 				Log.e("Refresh", paddingTop+"");
-				if(paddingTop < headerHeight){
+				if(paddingTop < 0){
 					headerView.setPadding(0, paddingTop, 0, 0);
 					state = PULLING_DOWN;
 					return true;
 				}else if(paddingTop < -headerHeight){
 					headerView.setPadding(0, -headerHeight, 0, 0);
 					return true;
-				}else if(paddingTop > headerHeight){
+				}else if(paddingTop > 0){
+					Log.e("ACTION_MOVE", "paddingTop > headerHeight");
 					state = PULLED_DOWN;
 				}
 			}
 			break;
+			
 		case MotionEvent.ACTION_UP:
 			if(isScrollToTop){
 				if(state == PULLING_DOWN){
