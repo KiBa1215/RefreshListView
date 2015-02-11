@@ -3,6 +3,8 @@ package com.example.refreshlistview;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -16,6 +18,7 @@ import android.widget.TextView;
 public class MainActivity extends Activity {
 
 	ReListView listView;
+	String[] str = {"123", "456", "789", "123", "456", "789", "123", "456", "789", "123", "456", "789", "123", "456", "789"};
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -25,6 +28,7 @@ public class MainActivity extends Activity {
 		listView = (ReListView)findViewById(R.id.listView);
 		ListAdapter adapter = new ListAdapter();
 		listView.setAdapter(adapter);
+		listView.setOnListViewRefreshListener(listener);
 	}
 
 	@Override
@@ -34,6 +38,33 @@ public class MainActivity extends Activity {
 		return true;
 	}
 
+	private OnListViewRefreshListener listener = new OnListViewRefreshListener() {
+		
+		@Override
+		public void onPullUpRefresh() {
+			handler.sendEmptyMessageDelayed(234, 2000);
+		}
+		
+		@Override
+		public void onPullDownRefresh() {
+			handler.sendEmptyMessageDelayed(123, 2000);
+		}
+	};
+	
+	private Handler handler = new Handler(){
+
+		@Override
+		public void handleMessage(Message msg) {
+			super.handleMessage(msg);
+			if(msg.what == 123){
+				listView.hideHeaderView();
+			}else if(msg.what == 234){
+				listView.hideFooterView();
+			}
+		}
+		
+	};
+	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		// Handle action bar item clicks here. The action bar will
@@ -48,7 +79,6 @@ public class MainActivity extends Activity {
 	
 	class ListAdapter extends BaseAdapter{
 
-		String[] str = {"123", "456", "789", "123", "456", "789", "123", "456", "789", "123", "456", "789", "123", "456", "789"};
 		
 		@Override
 		public int getCount() {

@@ -19,9 +19,10 @@ public class ReListView extends ListView implements OnScrollListener{
 	
 	private OnListViewRefreshListener onRefreshListener;
 	
-	private View headerView;
+	private View headerView, footerView;
 	private int headerHeight;// the height of headerView
-	private boolean isScrollToTop = false;
+	private int footerHeight;
+	private boolean isScrollToTop = false, isScrollToBottom = false;
 	private int firstVisibleItem = -1;
 	private float preY = 0;// Y coordinate of the first tap 
 	private int state = -1;// PULLING_DOWN | PULLED_DOWN
@@ -29,17 +30,22 @@ public class ReListView extends ListView implements OnScrollListener{
 	private final int PULLED_DOWN = 1;
 	private final int REFRESHING = 2;
 	
-	private TextView headerTextView;
+	private final int PULLING_UP = 3;
+	private final int PULLED_UP = 4;
+	private final int LOADING = 5;
+	
+	private TextView headerTextView, footerTextView;
 	private ProgressBar headerProgressBar;
 	private ImageView headerImageArrow;
 	
 	private RotateAnimation rotateUpAnimation, rotateDownAnimation;
 	private int rotateState = -1;
-	private final int ROTATE_UP = 3;
-	private final int ROTATE_DOWN = 4;
+	private final int ROTATE_UP = 6;
+	private final int ROTATE_DOWN = 7;
 	
 	public ReListView(Context context, AttributeSet attrs) {
 		super(context, attrs);
+		// add headerView
 		headerView = LayoutInflater.from(context).inflate(R.layout.listview_header_layout, null);
 		headerTextView = (TextView)headerView.findViewById(R.id.listview_header_textview);
 		headerProgressBar = (ProgressBar)headerView.findViewById(R.id.listview_header_progressbar);
@@ -48,23 +54,33 @@ public class ReListView extends ListView implements OnScrollListener{
 		initArrowAnimation();
 		
 		headerView.measure(0, 0);
-		headerHeight = headerView.getMeasuredHeight();
-		headerView.setPadding(0, -headerHeight, 0, 0);
-		this.addHeaderView(headerView);
+		headerHeight = headerView.getMeasuredHeight();// get height of the headerView 
+		headerView.setPadding(0, -headerHeight, 0, 0);// hide headerView
+		this.addHeaderView(headerView);// add view
+		
+		// add footerView
+		footerView = LayoutInflater.from(context).inflate(R.layout.listview_footer_layout, null);
+		footerTextView = (TextView)footerView.findViewById(R.id.listview_footer_textview);
+		
+		footerView.measure(0, 0);
+		footerHeight = footerView.getMeasuredHeight();
+		footerView.setPadding(0, 0, 0, -footerHeight);
+		this.addFooterView(footerView);
 		
 		this.setOnScrollListener(this);
+		
 	}
 
 	private void initArrowAnimation(){
 		rotateUpAnimation = new RotateAnimation(0, 180, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
-		rotateUpAnimation.setDuration(500);
+		rotateUpAnimation.setDuration(300);
 		rotateUpAnimation.setFillAfter(true);
 		rotateDownAnimation = new RotateAnimation(180, 0, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
-		rotateDownAnimation.setDuration(500);
+		rotateDownAnimation.setDuration(300);
 		rotateDownAnimation.setFillAfter(true);
 	}
 	
-	public void setOnRefreshListener(OnListViewRefreshListener onRefreshListener) {
+	public void setOnListViewRefreshListener(OnListViewRefreshListener onRefreshListener) {
 		this.onRefreshListener = onRefreshListener;
 	}
 
@@ -82,6 +98,11 @@ public class ReListView extends ListView implements OnScrollListener{
 		}else{
 			isScrollToTop = false;
 		}
+		if(getLastVisiblePosition() == (totalItemCount - 1)){
+			isScrollToBottom = true;
+		}else{
+			isScrollToBottom = false;
+		}
 	}
 	
 	@Override
@@ -97,6 +118,7 @@ public class ReListView extends ListView implements OnScrollListener{
 			break;
 			
 		case MotionEvent.ACTION_MOVE:
+			// if the listView is scrolled to top
 			if(isScrollToTop){
 				int deltaY = (int) (downY - preY)/2;
 				int paddingTop = deltaY - headerHeight;
@@ -106,7 +128,8 @@ public class ReListView extends ListView implements OnScrollListener{
 					headerTextView.setText("Pull down to refresh");
 					headerProgressBar.setVisibility(View.INVISIBLE);
 					// make the arrow rotate 180°
-					if(rotateState != ROTATE_DOWN){
+					if(rotateState != ROTATE_DOWN && rotateState != -1){
+						Log.e("", "rotateDownAnimation");
 						headerImageArrow.startAnimation(rotateDownAnimation);
 						rotateState = ROTATE_DOWN;
 					}
@@ -115,11 +138,28 @@ public class ReListView extends ListView implements OnScrollListener{
 					headerTextView.setText("Release to refresh");
 					// make the arrow rotate 180°
 					if(rotateState != ROTATE_UP){
+						Log.e("", "rotateUpAnimation");
 						headerImageArrow.startAnimation(rotateUpAnimation);
 						rotateState = ROTATE_UP;
 					}
 				}
 				headerView.setPadding(0, paddingTop, 0, 0);
+				return super.onTouchEvent(event);
+			}
+			
+			// if the listView is scrolled to bottom
+			if(isScrollToBottom){
+				int deltaY = (int) (downY - preY)/2;
+				int paddingBottom = deltaY + footerHeight;
+				Log.e("", "downY = " + downY + " preY = " + preY + " paddingBottom = "+paddingBottom);
+				if(paddingBottom > 0){
+					state = PULLING_UP;
+					Log.e("", "state == PULLING_UP");
+				}else{
+					state = PULLED_UP;
+					Log.e("", "state == PULLED_UP");
+				}
+				footerView.setPadding(0, 0, 0, Math.abs(paddingBottom));
 				return super.onTouchEvent(event);
 			}
 			break;
@@ -135,7 +175,19 @@ public class ReListView extends ListView implements OnScrollListener{
 					state = REFRESHING;
 					// on refresh
 					if(this.onRefreshListener != null){
-						this.onRefreshListener.onRefresh();
+						this.onRefreshListener.onPullDownRefresh();
+					}
+				}
+			}
+			if(isScrollToBottom){
+				if(state == PULLING_UP){
+					footerView.setPadding(0, 0, 0, -footerHeight);
+				}else if(state == PULLED_UP){
+					footerView.setPadding(0, 0, 0, 0);
+					footerTextView.setText("Loading...");
+					state = LOADING;
+					if(this.onRefreshListener != null){
+						this.onRefreshListener.onPullUpRefresh();
 					}
 				}
 			}
@@ -147,6 +199,18 @@ public class ReListView extends ListView implements OnScrollListener{
 		return super.onTouchEvent(event);
 	}
 	
+	public void hideHeaderView(){
+		headerImageArrow.setAnimation(rotateDownAnimation);
+		rotateState = -1;
+		headerView.setPadding(0, -headerHeight, 0, 0);// hide headerView
+		headerProgressBar.setVisibility(View.INVISIBLE);
+		headerTextView.setText("Pull down to refresh");
+		state = PULLING_DOWN;
+	}
 	
-	
+	public void hideFooterView(){
+		footerTextView.setText("Pull up to refresh");
+		footerView.setPadding(0, 0, 0, -footerHeight);// hide footerView
+		state = PULLING_UP;
+	}
 }

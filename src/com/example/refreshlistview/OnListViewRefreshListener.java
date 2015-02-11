@@ -2,5 +2,6 @@ package com.example.refreshlistview;
 
 public interface OnListViewRefreshListener {
 
-	public void onRefresh();
+	public void onPullDownRefresh();
+	public void onPullUpRefresh();
 }
