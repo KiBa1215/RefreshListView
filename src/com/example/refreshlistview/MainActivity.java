@@ -1,5 +1,7 @@
 package com.example.refreshlistview;
 
+import java.util.ArrayList;
+
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -19,6 +21,8 @@ public class MainActivity extends Activity {
 
 	ReListView listView;
 	String[] str = {"123", "456", "789", "123", "456", "789", "123", "456", "789", "123", "456", "789", "123", "456", "789"};
+	ArrayList<String> arrList = new ArrayList<String>();
+	ListAdapter adapter;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -26,7 +30,10 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 		
 		listView = (ReListView)findViewById(R.id.listView);
-		ListAdapter adapter = new ListAdapter();
+		for (String string : str) {
+			arrList.add(string);
+		}
+		adapter = new ListAdapter();
 		listView.setAdapter(adapter);
 		listView.setOnListViewRefreshListener(listener);
 	}
@@ -43,11 +50,14 @@ public class MainActivity extends Activity {
 		@Override
 		public void onPullUpRefresh() {
 			handler.sendEmptyMessageDelayed(234, 2000);
+			
 		}
 		
 		@Override
 		public void onPullDownRefresh() {
 			handler.sendEmptyMessageDelayed(123, 2000);
+			arrList.add(0, new String("a new added pull down message"));
+			adapter.notifyDataSetChanged();
 		}
 	};
 	
@@ -82,7 +92,7 @@ public class MainActivity extends Activity {
 		
 		@Override
 		public int getCount() {
-			return str.length;
+			return arrList.size();
 		}
 
 		@Override
@@ -98,7 +108,7 @@ public class MainActivity extends Activity {
 		@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
 			TextView textView = new TextView(MainActivity.this);
-			textView.setText(str[position]);
+			textView.setText(arrList.get(position));
 			textView.setTextColor(Color.BLACK);
 			textView.setTextSize(24f);
 			textView.setHeight(150);
